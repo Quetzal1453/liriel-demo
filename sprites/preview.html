@@ -1,0 +1,19 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Liriel sprite sheets</title>
+<style>body{margin:0;background:#1c1826;color:#eee;font-family:system-ui,sans-serif;text-align:center}canvas{background:linear-gradient(#3a3550,#262233);max-width:100%;border-radius:8px}
+button{margin:3px;padding:8px 12px;border:1px solid #9a6cff;background:#2d2140;color:#eee;border-radius:6px;font-size:15px}button.on{background:#6a3cc0}a{color:#c9a8ff}</style></head><body>
+<h2>Liriel Veyra — sprite sheets</h2><div id="sets"></div><div id="btn"></div><canvas id="c" width="576" height="512"></canvas>
+<p id="info"></p><label><input type="checkbox" id="half"> half-size sheet</label> <label><input type="checkbox" id="flip"> mirror (face left)</label>
+<p><a href="liriel_battle.png">battle sheet</a> · <a href="liriel_battle_half.png">half</a> · <a href="liriel_chibi.png">chibi sheet</a> · <a href="liriel_battle.json">atlas JSON</a> · <a href="liriel_battle.texturepacker.json">TexturePacker JSON</a> · <a href="contact.jpg">contact</a></p>
+<script>
+const c=document.getElementById('c'),x=c.getContext('2d');let A,img,anim,fi=0,t=0,set='liriel_battle';const imgs={};
+async function load(s){set=s;A=await (await fetch(s+'.json')).json();for(const k of [A.image,A.half])if(!imgs[k]){imgs[k]=new Image();imgs[k].src=k;await imgs[k].decode();}
+ c.width=A.cell[0];c.height=A.cell[1];const b=document.getElementById('btn');b.innerHTML='';
+ for(const k in A.animations){const e=document.createElement('button');e.textContent=k;e.onclick=()=>{anim=k;fi=0;t=0;[...b.children].forEach(z=>z.classList.toggle('on',z==e));};b.appendChild(e);} b.children[0].click();}
+const sb=document.getElementById('sets');for(const s of ['liriel_battle','liriel_chibi']){const e=document.createElement('button');e.textContent=s.replace('liriel_','');e.onclick=()=>load(s);sb.appendChild(e);}
+let last=performance.now();function loop(n){const dt=n-last;last=n;if(A){const L=A.animations[anim].frames;let f=A.frames[L[fi]];t+=dt;if(t>=f.duration){t=0;fi=fi+1;if(fi>=L.length)fi=A.animations[anim].loop?0:(t=-500,0);}f=A.frames[L[Math.max(0,fi)]];
+ const h=document.getElementById('half').checked,sc=h?.5:1,im=imgs[h?A.half:A.image];x.clearRect(0,0,c.width,c.height);
+ x.fillStyle='rgba(0,0,0,.35)';x.beginPath();x.ellipse(A.pivot[0],A.pivot[1],70,12,0,0,7);x.fill();
+ x.save();if(document.getElementById('flip').checked){x.translate(c.width,0);x.scale(-1,1);}x.drawImage(im,f.x*sc,f.y*sc,f.w*sc,f.h*sc,0,0,f.w,f.h);x.restore();
+ document.getElementById('info').textContent=`${anim} — frame ${fi+1}/${L.length} (${f.src}, ${f.duration} ms)`;}requestAnimationFrame(loop);}
+load('liriel_battle');requestAnimationFrame(loop);
+</script></body></html>

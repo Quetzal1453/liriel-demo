@@ -1,0 +1,158 @@
+{
+ "image": "liriel_chibi.png",
+ "half": "liriel_chibi_half.png",
+ "cell": [
+  256,
+  256
+ ],
+ "pivot": [
+  128,
+  248
+ ],
+ "pivotNorm": [
+  0.5,
+  0.96875
+ ],
+ "frames": {
+  "idle_00": {
+   "x": 0,
+   "y": 0,
+   "w": 256,
+   "h": 256,
+   "duration": 500,
+   "src": "chibi_idle"
+  },
+  "idle_01": {
+   "x": 256,
+   "y": 0,
+   "w": 256,
+   "h": 256,
+   "duration": 500,
+   "src": "chibi_idle_rest"
+  },
+  "walk_00": {
+   "x": 0,
+   "y": 256,
+   "w": 256,
+   "h": 256,
+   "duration": 200,
+   "src": "chibi_walk"
+  },
+  "walk_01": {
+   "x": 256,
+   "y": 256,
+   "w": 256,
+   "h": 256,
+   "duration": 200,
+   "src": "chibi_side"
+  },
+  "attack_00": {
+   "x": 0,
+   "y": 512,
+   "w": 256,
+   "h": 256,
+   "duration": 150,
+   "src": "chibi_windup"
+  },
+  "attack_01": {
+   "x": 256,
+   "y": 512,
+   "w": 256,
+   "h": 256,
+   "duration": 200,
+   "src": "chibi_windup2"
+  },
+  "attack_02": {
+   "x": 512,
+   "y": 512,
+   "w": 256,
+   "h": 256,
+   "duration": 80,
+   "src": "chibi_midswing2"
+  },
+  "attack_03": {
+   "x": 768,
+   "y": 512,
+   "w": 256,
+   "h": 256,
+   "duration": 220,
+   "src": "chibi_peak"
+  },
+  "attack_04": {
+   "x": 1024,
+   "y": 512,
+   "w": 256,
+   "h": 256,
+   "duration": 250,
+   "src": "chibi_recovery"
+  },
+  "dodge_00": {
+   "x": 0,
+   "y": 768,
+   "w": 256,
+   "h": 256,
+   "duration": 400,
+   "src": "chibi_dodge"
+  },
+  "spell_00": {
+   "x": 0,
+   "y": 1024,
+   "w": 256,
+   "h": 256,
+   "duration": 600,
+   "src": "chibi_spell"
+  },
+  "back_00": {
+   "x": 0,
+   "y": 1280,
+   "w": 256,
+   "h": 256,
+   "duration": 500,
+   "src": "chibi_back"
+  }
+ },
+ "animations": {
+  "idle": {
+   "frames": [
+    "idle_00",
+    "idle_01"
+   ],
+   "loop": true
+  },
+  "walk": {
+   "frames": [
+    "walk_00",
+    "walk_01"
+   ],
+   "loop": true
+  },
+  "attack": {
+   "frames": [
+    "attack_00",
+    "attack_01",
+    "attack_02",
+    "attack_03",
+    "attack_04"
+   ],
+   "loop": false
+  },
+  "dodge": {
+   "frames": [
+    "dodge_00"
+   ],
+   "loop": false
+  },
+  "spell": {
+   "frames": [
+    "spell_00"
+   ],
+   "loop": false
+  },
+  "back": {
+   "frames": [
+    "back_00"
+   ],
+   "loop": false
+  }
+ }
+}
