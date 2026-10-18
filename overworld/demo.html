@@ -1,0 +1,121 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Liriel — overworld</title>
+<style>html,body{margin:0;height:100%;background:#000;overflow:hidden;font:13px Georgia,serif;color:#f3e6c8}canvas{display:block}
+#hud{position:fixed;left:14px;top:12px;background:#1a1226cc;border:1px solid #b08a3a;padding:6px 10px;border-radius:3px}
+#hud b{color:#d9b25a}</style>
+<script type="importmap">{"imports":{"three":"./three/build/three.module.js","three/addons/":"./three/examples/jsm/"}}</script></head>
+<body><div id="hud"><b>Liriel Veyra</b> — click the map or WASD to move · Space: attack</div>
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+const q = new URLSearchParams(location.search);
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: q.has('shot') });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5)); renderer.setSize(innerWidth, innerHeight); renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1; document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x2a2418); scene.fog = new THREE.Fog(0x3a3020, 18, 34);
+const camera = new THREE.PerspectiveCamera(32, innerWidth / innerHeight, .1, 100);
+const tl = new THREE.TextureLoader(), tex = async (u) => { const t = await tl.loadAsync(u); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; };
+// ---- tabletop: painted map on a wooden board ----
+const MW = 32, MH = 18;
+const mapT = await tex('assets/map.jpg');
+const board = new THREE.Mesh(new THREE.BoxGeometry(MW + 1.2, .5, MH + 1.2), new THREE.MeshStandardMaterial({ color: 0x4a2e1a, roughness: .8 })); board.position.y = -.26; board.receiveShadow = true; scene.add(board);
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(MW, MH).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ map: mapT, roughness: .95 })); ground.receiveShadow = true; scene.add(ground);
+scene.add(new THREE.HemisphereLight(0xfff2dc, 0x5a4a3a, 1.1));
+const sun = new THREE.DirectionalLight(0xffe0b0, 1.6); sun.position.set(-8, 14, 6); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -18, right: 18, top: 12, bottom: -12, near: 1, far: 40 }); sun.shadow.bias = -.0008; sun.shadow.radius = 6; scene.add(sun, sun.target);
+// ---- unit ----
+const units = await (await fetch('assets/units.json')).json();
+const FR = {}; for (const n of ['chibi_front', 'chibi_side', 'chibi_back', 'chibi_walk', 'chibi_attack']) FR[n] = await tex(`assets/${n}.png`);
+const [CW, CH] = units.canvas, [FX, FY] = units.foot, UH = 1.9, UW = UH * CW / CH;
+// sprite plane with its origin at the feet; deformation in the vertex shader (squash, cape/hair sway, step shear), flash in the fragment shader
+const geo = new THREE.PlaneGeometry(UW, UH, 10, 14).translate(UW * (.5 - FX / CW), UH * (.5 - (CH - FY) / CH) + UH * 0 , 0);
+geo.translate(0, UH * ((CH - FY) / CH) * 0, 0);
+const uni = { map: { value: FR.chibi_front }, uT: { value: 0 }, uSquash: { value: 0 }, uSway: { value: 1 }, uStep: { value: 0 }, uFlash: { value: 0 }, uFoot: { value: (CH - FY) / CH } };
+const sprMat = new THREE.ShaderMaterial({ uniforms: uni, transparent: true, depthWrite: false, side: THREE.DoubleSide,
+  vertexShader: `uniform float uT,uSquash,uSway,uStep,uFoot; varying vec2 vUv;
+    void main(){ vUv = uv; vec3 p = position; float h = clamp((uv.y - uFoot) / (1. - uFoot), 0., 1.);
+      p.y *= 1. - uSquash; p.x *= 1. + uSquash * .7;                                   // squash about the feet
+      float edge = abs(uv.x - .5) * 2.;                                                // cape + hair live on the silhouette edges
+      float band = smoothstep(.05, .45, h) * (1. - smoothstep(.75, 1., h));
+      p.x += uSway * .035 * sin(uT * 2.4 + h * 3.2) * band * (.4 + edge);              // slow cloth / hair sway
+      p.y += uSway * .012 * sin(uT * 2.0 + uv.x * 4.) * band * edge;
+      p.x += uStep * h * h * .16;                                                       // stepping lean
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.); }`,
+  fragmentShader: `uniform sampler2D map; uniform float uFlash; varying vec2 vUv;
+    void main(){ vec4 c = texture2D(map, vUv); if (c.a < .35) discard; vec3 col = c.rgb; col = mix(col, vec3(.8,.5,1.), uFlash * .3) + vec3(.3,.08,.5) * uFlash * .35;
+      gl_FragColor = vec4(col, 1.);
+      #include <colorspace_fragment>
+    }` });
+const unit = new THREE.Group(); scene.add(unit);
+const spr = new THREE.Mesh(geo, sprMat); spr.renderOrder = 5; spr.castShadow = true;
+spr.customDepthMaterial = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, map: FR.chibi_front, alphaTest: .4 });
+const sprPivot = new THREE.Group(); sprPivot.add(spr); unit.add(sprPivot);
+// soft shadow blob + unit base (dark disc, gold rim) + banner
+function radial(c0, c1) { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'), g = x.createRadialGradient(64, 64, 0, 64, 64, 64); g.addColorStop(0, c0); g.addColorStop(1, c1); x.fillStyle = g; x.fillRect(0, 0, 128, 128); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; }
+const blob = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.5).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: radial('rgba(20,10,30,.6)', 'rgba(20,10,30,0)'), transparent: true, depthWrite: false })); blob.position.y = .012; unit.add(blob);
+const base = new THREE.Group(); unit.add(base);
+const disc = new THREE.Mesh(new THREE.CylinderGeometry(.5, .54, .07, 40), new THREE.MeshStandardMaterial({ color: 0x1c1428, roughness: .5, metalness: .3 })); disc.position.y = .035; disc.castShadow = disc.receiveShadow = true;
+const rim = new THREE.Mesh(new THREE.TorusGeometry(.52, .025, 8, 48).rotateX(Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0xd4a84a, roughness: .3, metalness: .9 })); rim.position.y = .07;
+const ring = new THREE.Mesh(new THREE.RingGeometry(.36, .44, 48).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0xb070ff, transparent: true, opacity: .55, blending: THREE.AdditiveBlending, depthWrite: false })); ring.position.y = .076;
+base.add(disc, rim, ring);
+const flagC = document.createElement('canvas'); flagC.width = 128; flagC.height = 160; { const x = flagC.getContext('2d'); const g = x.createLinearGradient(0, 0, 0, 160); g.addColorStop(0, '#5a2a8a'); g.addColorStop(1, '#2e1450'); x.fillStyle = g;
+  x.beginPath(); x.moveTo(0, 0); x.lineTo(128, 0); x.lineTo(128, 160); x.lineTo(64, 128); x.lineTo(0, 160); x.fill(); x.strokeStyle = '#d4a84a'; x.lineWidth = 6; x.stroke();
+  x.fillStyle = '#e6c26a'; x.beginPath(); x.moveTo(64, 26); x.lineTo(82, 64); x.lineTo(64, 102); x.lineTo(46, 64); x.closePath(); x.fill(); x.fillStyle = '#b070ff'; x.beginPath(); x.arc(64, 64, 9, 0, 7); x.fill(); }
+const flagT = new THREE.CanvasTexture(flagC); flagT.colorSpace = THREE.SRGBColorSpace;
+const pole = new THREE.Mesh(new THREE.CylinderGeometry(.018, .018, 1.55, 6), new THREE.MeshStandardMaterial({ color: 0xc89a40, metalness: .8, roughness: .35 })); pole.position.set(.52, .8, -.15); pole.castShadow = true;
+const flagG = new THREE.PlaneGeometry(.42, .52, 8, 4).translate(.21, 0, 0), flag = new THREE.Mesh(flagG, new THREE.MeshStandardMaterial({ map: flagT, side: THREE.DoubleSide, transparent: true, alphaTest: .5 }));
+flag.position.set(.52, 1.3, -.15); flag.castShadow = true; base.add(pole, flag); const flagBase = flagG.attributes.position.array.slice();
+// attack FX: expanding ring + purple point light
+const fxRing = new THREE.Mesh(new THREE.RingGeometry(.3, .5, 64).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: radial('rgba(255,255,255,1)', 'rgba(255,255,255,0)'), color: 0xc080ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })); fxRing.position.y = .09; unit.add(fxRing);
+const fxLight = new THREE.PointLight(0xb060ff, 0, 6, 1.5); fxLight.position.set(0, 1.1, .3); unit.add(fxLight);
+// ---- post ----
+const composer = new EffectComposer(renderer); composer.addPass(new RenderPass(scene, camera));
+composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), .35, .6, .85));
+composer.addPass(new ShaderPass({ uniforms: { tDiffuse: { value: null } }, vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.); }',
+  fragmentShader: 'uniform sampler2D tDiffuse; varying vec2 vUv; void main(){ vec4 c = texture2D(tDiffuse, vUv); float v = smoothstep(.95, .3, length((vUv - .5) * vec2(1., 1.2))); c.rgb *= mix(.62, 1., v); gl_FragColor = c; }' }));
+composer.addPass(new OutputPass());
+addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
+// ---- control ----
+const pos = new THREE.Vector3(+(q.get('x') || -2), 0, +(q.get('z') || 4.2)), target = pos.clone(); let dir = 'down', moving = false, atk = -1, T = 0, walkT = 0;
+const keys = {}; addEventListener('keydown', e => { keys[e.code] = true; if (e.code === 'Space') attack(); }); addEventListener('keyup', e => keys[e.code] = false);
+const ray = new THREE.Raycaster(), mp = new THREE.Vector2();
+renderer.domElement.addEventListener('pointerdown', e => { mp.set(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1); ray.setFromCamera(mp, camera); const h = ray.intersectObject(ground)[0]; if (h) target.copy(h.point).setY(0); });
+function attack() { if (atk < 0) atk = 0; }
+window.cmd = { moveTo: (x, z) => target.set(x, 0, z), attack, key: (k, v) => keys[k] = v };
+const camPos = new THREE.Vector3(), camLook = new THREE.Vector3(), OFF = new THREE.Vector3(0, 11.5, 9.8);
+camPos.copy(pos).add(OFF); camLook.copy(pos);
+function step(dt) { T += dt;
+  let vx = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0), vz = (keys.KeyS ? 1 : 0) - (keys.KeyW ? 1 : 0);
+  if (vx || vz) target.copy(pos).add(new THREE.Vector3(vx, 0, vz).normalize().multiplyScalar(.6));
+  const d = target.clone().sub(pos); d.y = 0; const dist = d.length(); moving = dist > .03 && atk < 0;
+  if (moving) { const sp = Math.min(dist, 3.2 * dt); d.normalize(); pos.addScaledVector(d, sp); vx = d.x; vz = d.z;
+    dir = Math.abs(vx) > Math.abs(vz) * 1.1 ? (vx > 0 ? 'right' : 'left') : (vz < 0 ? 'up' : 'down'); walkT += dt; }
+  pos.x = THREE.MathUtils.clamp(pos.x, -MW / 2 + .8, MW / 2 - .8); pos.z = THREE.MathUtils.clamp(pos.z, -MH / 2 + .8, MH / 2 - .8);
+  unit.position.copy(pos);
+  // frame selection + deformation
+  let frame = dir === 'up' ? 'chibi_back' : (dir === 'left' || dir === 'right') ? 'chibi_side' : 'chibi_front', bounce = 0, squash = .012 * Math.sin(T * 2.6), stepS = 0, flash = 0, pop = 1;
+  if (moving) { const ph = walkT * 2 * Math.PI / .5;          // two steps per 0.5 s cycle
+    if (dir === 'down') frame = Math.sin(ph) > 0 ? 'chibi_walk' : 'chibi_front';
+    bounce = .09 * Math.abs(Math.sin(ph)); squash = -.035 * Math.cos(2 * ph); stepS = .5 * Math.sin(ph) * (dir === 'up' || dir === 'down' ? 1 : .6); }
+  if (atk >= 0) { atk += dt; const u = atk / .62; frame = 'chibi_attack'; pop = 1 + .16 * Math.sin(Math.min(1, u * 2.2) * Math.PI) ; squash = u < .12 ? .08 * (u / .12) : -.04 * Math.max(0, 1 - u);
+    flash = Math.max(0, 1 - Math.abs(u - .2) / .35); fxRing.scale.setScalar(.6 + u * 3.2); fxRing.material.opacity = .9 * Math.max(0, 1 - u); fxLight.intensity = 14 * flash;
+    if (u >= 1) { atk = -1; fxRing.material.opacity = 0; fxLight.intensity = 0; } }
+  uni.map.value = FR[frame]; spr.customDepthMaterial.map = FR[frame]; uni.uT.value = T; uni.uSquash.value = squash; uni.uStep.value = stepS; uni.uFlash.value = flash; uni.uSway.value = moving ? 1.6 : 1;
+  sprPivot.position.y = bounce; sprPivot.scale.set((dir === 'right' ? -1 : 1) * pop, pop, pop);
+  // billboard: yaw to camera, lean back toward the camera so the standee reads from above
+  sprPivot.rotation.set(-.32, 0, 0);
+  // banner cloth wave
+  { const a = flagG.attributes.position; for (let i = 0; i < a.count; i++) { const x = flagBase[i * 3]; a.array[i * 3 + 2] = flagBase[i * 3 + 2] + Math.sin(T * 5 + x * 9) * .05 * x / .42; } a.needsUpdate = true; }
+  ring.material.opacity = .4 + .15 * Math.sin(T * 3);
+  // camera follow (smoothed), slight tilt
+  const k = 1 - Math.exp(-dt * 3.5); camPos.lerp(pos.clone().add(OFF), k); camLook.lerp(pos.clone().add(new THREE.Vector3(0, .6, 0)), k);
+  camera.position.copy(camPos); camera.lookAt(camLook); sun.target.position.copy(pos); sun.position.copy(pos).add(new THREE.Vector3(-8, 14, 6));
+  composer.render(); }
+window.step = (n, dt = 1 / 30) => { for (let i = 0; i < n; i++) step(dt); };
+if (q.has('shot')) { if (q.get('dir')) { dir = q.get('dir'); } if (q.has('walk')) { target.set(pos.x + (dir === 'right' ? 5 : dir === 'left' ? -5 : 0), 0, pos.z + (dir === 'down' ? 5 : dir === 'up' ? -5 : 0)); }
+  step(1 / 30); camPos.copy(pos).add(OFF); camLook.copy(pos).setY(.6); window.step(+(q.get('n') || 8)); if (q.has('attack')) { attack(); window.step(+(q.get('an') || 6)); } window.__ready = true; }
+else { let last = performance.now(); renderer.setAnimationLoop(() => { const n = performance.now(); step(Math.min(.05, (n - last) / 1000)); last = n; }); }
+</script></body></html>

@@ -1,0 +1,52 @@
+{
+ "canvas": [
+  300,
+  400
+ ],
+ "foot": [
+  150,
+  384
+ ],
+ "frames": {
+  "chibi_front": {
+   "scale": 0.1999,
+   "offset": [
+    46,
+    64
+   ],
+   "clippedTop": false
+  },
+  "chibi_side": {
+   "scale": 0.2164,
+   "offset": [
+    54,
+    64
+   ],
+   "clippedTop": false
+  },
+  "chibi_back": {
+   "scale": 0.2089,
+   "offset": [
+    46,
+    64
+   ],
+   "clippedTop": false
+  },
+  "chibi_walk": {
+   "scale": 0.2332,
+   "offset": [
+    72,
+    64
+   ],
+   "clippedTop": false
+  },
+  "chibi_attack": {
+   "scale": 0.2199,
+   "offset": [
+    5,
+    34
+   ],
+   "clippedTop": false
+  }
+ }
+}

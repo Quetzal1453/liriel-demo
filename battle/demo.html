@@ -1,0 +1,167 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Liriel — Battle</title>
+<style>body{margin:0;background:#000;overflow:hidden;font-family:Georgia,serif}#ui{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);display:flex;gap:8px}
+button{background:#2a1838cc;color:#e9dcff;border:1px solid #9a6cff;padding:7px 14px;border-radius:4px;font:15px Georgia;cursor:pointer}button:hover{background:#4a2a68}
+#name{position:fixed;left:24px;top:18px;color:#efe6ff;font:22px Georgia;text-shadow:0 0 8px #8a4cff}.shot #ui{display:none}</style>
+<script type="importmap">{"imports":{"three":"../three/build/three.module.js","three/addons/":"../three/examples/jsm/"}}</script></head>
+<body><div id="name">Liriel Veyra</div><div id="ui"><button data-a="idle">Idle</button><button data-a="walk">Walk</button><button data-a="attack">Attack</button><button data-a="seq">Full sequence</button><button data-a="flip">Mirror</button></div>
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+const SHOT = location.search.includes('shot'); if (SHOT) document.body.classList.add('shot');
+const W = 1280, H = 720, GROUND = -255, SC = 0.6;
+const ren = new THREE.WebGLRenderer({ antialias: true }); ren.setSize(innerWidth, innerHeight); ren.setPixelRatio(1); document.body.appendChild(ren.domElement);
+const scene = new THREE.Scene(); const cam = new THREE.OrthographicCamera(-W/2, W/2, H/2, -H/2, -100, 100);
+const fit = () => { ren.setSize(innerWidth, innerHeight); const a = innerWidth/innerHeight; cam.left=-H*a/2; cam.right=H*a/2; cam.updateProjectionMatrix(); comp.setSize(innerWidth, innerHeight); };
+const TL = new THREE.TextureLoader(); const ld = u => new Promise(r => TL.load(u, t => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; r(t); }));
+const meta = await (await fetch('assets/frames.json')).json();
+const names = Object.keys(meta.frames); const TX = {}; await Promise.all(names.map(async n => TX[n] = await ld(`assets/${n}.png`)));
+const bgT = await ld('assets/stage.jpg');
+const bg = new THREE.Mesh(new THREE.PlaneGeometry(1280*1.06, 720*1.06), new THREE.MeshBasicMaterial({ map: bgT })); bg.position.z = -50; scene.add(bg);
+// soft light overlay (vertical warm/cool grade)
+const fog = new THREE.Mesh(new THREE.PlaneGeometry(1400, 800), new THREE.ShaderMaterial({ transparent: true, depthWrite:false, uniforms:{}, vertexShader:`varying vec2 v;void main(){v=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+  fragmentShader:`varying vec2 v;void main(){float g=smoothstep(.55,.0,v.y);gl_FragColor=vec4(vec3(.12,.06,.2),g*.35);}` })); fog.position.z = -40; scene.add(fog);
+// ---------- Liriel sprite: 2-texture crossfade + mesh deformation ----------
+const [CW, CH] = meta.canvas, [AX, AY] = meta.anchor;
+const geo = new THREE.PlaneGeometry(CW, CH, 24, 36); geo.translate(CW/2 - AX, CH/2 - (CH - AY), 0);
+const U = { tA:{value:TX.atk1_rest}, tB:{value:TX.atk1_rest}, uMix:{value:0}, uT:{value:0}, uSway:{value:1}, uSquash:{value:0}, uLean:{value:0}, uStretch:{value:0}, uFlash:{value:0}, uFlip:{value:1}, uTint:{value:new THREE.Color(1,1,1)} };
+const lirMat = new THREE.ShaderMaterial({ uniforms: U, transparent: true, depthWrite: false,
+ vertexShader:`uniform float uT,uSway,uSquash,uLean,uStretch,uFlip;varying vec2 vUv;
+ void main(){vUv=uv;vec3 p=position;float h=clamp(p.y/${CH-0}.,0.,1.);
+  // anticipation squash/stretch around the feet
+  p.y*=1.-uSquash; p.x*=1.+uSquash*.6;
+  p.x*=1.+uStretch; p.x+=uStretch*h*160.;
+  // lean / shear from feet
+  p.x+=uLean*h*h*120.;
+  // hair (upper back) + cape/tails (lower) sway — mesh deformation, weighted away from the torso core
+  float side=smoothstep(40.,260.,abs(p.x));
+  float hair=smoothstep(.55,.95,h)*side, cape=smoothstep(.62,.08,h)*smoothstep(.25,.0,h*0.)*side;
+  p.x+=sin(uT*2.1+h*5.)*uSway*(hair*7.+cape*10.);
+  p.y+=cos(uT*1.7+p.x*.02)*uSway*cape*3.;
+  p.x*=uFlip;
+  gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}`,
+ fragmentShader:`uniform sampler2D tA,tB;uniform float uMix,uFlash;uniform vec3 uTint;varying vec2 vUv;
+ void main(){vec4 a=texture2D(tA,vUv),b=texture2D(tB,vUv);vec4 c=mix(a,b,uMix);c.a=max(c.a,max(a.a,b.a)*.8);if(c.a<.02)discard;
+  vec3 col=c.rgb/max(c.a,1e-3);col*=uTint;col=mix(col,vec3(.85,.6,1.),uFlash*.45);
+  gl_FragColor=vec4(col,c.a);
+  #include <colorspace_fragment>
+ }` });
+const lir = new THREE.Group(); scene.add(lir); const lirMesh = new THREE.Mesh(geo, lirMat); lirMesh.scale.setScalar(SC); lir.add(lirMesh);
+// soft contact shadows
+const shadowMat = () => new THREE.ShaderMaterial({ transparent:true, depthWrite:false, uniforms:{o:{value:.55}}, vertexShader:`varying vec2 v;void main(){v=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`, fragmentShader:`uniform float o;varying vec2 v;void main(){float d=length((v-.5)*2.);gl_FragColor=vec4(0.,0.,.03,o*smoothstep(1.,.0,d));}` });
+const lSh = new THREE.Mesh(new THREE.PlaneGeometry(230, 40), shadowMat()); lSh.position.z = -1; lir.add(lSh);
+// ---------- Training dummy (canvas painted) ----------
+const dc = document.createElement('canvas'); dc.width = 300; dc.height = 520; const g = dc.getContext('2d');
+g.fillStyle='#4a3020';g.fillRect(140,200,22,320); // post
+const sg=g.createLinearGradient(80,0,220,0);sg.addColorStop(0,'#7a5a2c');sg.addColorStop(.5,'#c9a25a');sg.addColorStop(1,'#6a4a22');
+g.fillStyle=sg;g.beginPath();g.ellipse(151,250,62,110,0,0,7);g.fill(); // straw body
+g.fillStyle='#5a3a1e';g.fillRect(30,190,242,20); // arms
+g.strokeStyle='#3a2414';g.lineWidth=5;for(const y of [180,300,330])g.beginPath(),g.moveTo(92,y),g.quadraticCurveTo(151,y+14,210,y),g.stroke();
+g.fillStyle='#d8b878';g.beginPath();g.arc(151,95,52,0,7);g.fill();g.fillStyle='#8a2a2a';g.beginPath();g.arc(151,250,26,0,7);g.fill();g.fillStyle='#e8d0a0';g.beginPath();g.arc(151,250,11,0,7);g.fill();
+g.strokeStyle='#9a7a40';g.lineWidth=2;for(let i=0;i<40;i++){g.beginPath();const a=Math.random()*6.28;g.moveTo(151+Math.cos(a)*40,95+Math.sin(a)*40);g.lineTo(151+Math.cos(a)*60,95+Math.sin(a)*60);g.stroke();}
+const dT = new THREE.CanvasTexture(dc); dT.colorSpace = THREE.SRGBColorSpace;
+const DU = { map:{value:dT}, uFlash:{value:0} };
+const dGeo = new THREE.PlaneGeometry(300, 520); dGeo.translate(0, 260, 0);
+const dum = new THREE.Group(); dum.position.set(330, GROUND, 0); scene.add(dum);
+const dMesh = new THREE.Mesh(dGeo, new THREE.ShaderMaterial({ uniforms: DU, transparent:true, depthWrite:false, vertexShader:`varying vec2 v;void main(){v=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+ fragmentShader:`uniform sampler2D map;uniform float uFlash;varying vec2 v;void main(){vec4 c=texture2D(map,v);if(c.a<.05)discard;vec3 col=c.rgb*vec3(.78,.74,.9);col=mix(col,vec3(1.,.85,1.),uFlash);gl_FragColor=vec4(col,c.a);
+ #include <colorspace_fragment>
+ }` })); dMesh.scale.setScalar(.92); dum.add(dMesh);
+const dSh = new THREE.Mesh(new THREE.PlaneGeometry(170, 32), shadowMat()); dSh.position.z=-1; dum.add(dSh);
+// ---------- FX: slash trail arcs + sparks ----------
+const trails = [];
+const trailMat = () => new THREE.ShaderMaterial({ transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, uniforms:{uA:{value:1},uP:{value:0}},
+ vertexShader:`varying vec2 v;void main(){v=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+ fragmentShader:`uniform float uA,uP;varying vec2 v;void main(){float edge=pow(v.y,2.5);float along=smoothstep(0.,.25,v.x)*smoothstep(1.,.55,v.x);float rev=step(v.x,uP);
+  vec3 c=mix(vec3(.45,.1,.9),vec3(1.,.85,1.),pow(v.y,6.));gl_FragColor=vec4(c*edge*along*uA*rev*1.6,1.);}` });
+function slash(cx, cy, r, a0, a1, w) {
+  const m = new THREE.Mesh(new THREE.RingGeometry(r - w, r, 48, 1, a0, a1 - a0), trailMat());
+  // ring uv: remap so x=angle progress, y=radial
+  const p = m.geometry.attributes.position, uv = m.geometry.attributes.uv;
+  for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i); let a = Math.atan2(y, x); if (a < a0 - .01) a += 6.283; uv.setXY(i, (a - a0) / (a1 - a0), (Math.hypot(x, y) - (r - w)) / w); }
+  m.position.set(cx, cy, 5); scene.add(m); trails.push({ m, t: 0 });
+}
+const NS = 260; const sp = { pos: new Float32Array(NS*3), vel: new Float32Array(NS*3), life: new Float32Array(NS), n: 0 };
+const spGeo = new THREE.BufferGeometry(); spGeo.setAttribute('position', new THREE.BufferAttribute(sp.pos, 3)); spGeo.setAttribute('life', new THREE.BufferAttribute(sp.life, 1));
+const sparks = new THREE.Points(spGeo, new THREE.ShaderMaterial({ transparent:true, depthWrite:false, blending:THREE.AdditiveBlending,
+ vertexShader:`attribute float life;varying float l;void main(){l=life;gl_PointSize=3.+life*9.;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+ fragmentShader:`varying float l;void main(){if(l<=0.)discard;float d=length(gl_PointCoord-.5);float a=smoothstep(.5,.0,d);gl_FragColor=vec4(mix(vec3(.55,.2,1.),vec3(1.,.9,1.),l)*a*l*1.5,1.);}` }));
+sparks.position.z = 6; sparks.frustumCulled = false; scene.add(sparks);
+function burst(x, y, n, spd, dir = 1) { for (let k = 0; k < n; k++) { const i = sp.n++ % NS; const a = (Math.random() - .5) * 2.4 + (dir > 0 ? 0 : Math.PI); const v = spd * (.3 + Math.random());
+  sp.pos.set([x, y, 0], i*3); sp.vel.set([Math.cos(a)*v, Math.sin(a)*v + 120, 0], i*3); sp.life[i] = .6 + Math.random()*.4; } }
+// impact flash quad
+const flash = new THREE.Mesh(new THREE.CircleGeometry(1, 32), new THREE.MeshBasicMaterial({ color: 0xc89aff, transparent:true, opacity:0, blending:THREE.AdditiveBlending, depthWrite:false })); flash.position.z = 7; scene.add(flash);
+// ---------- post ----------
+const comp = new EffectComposer(ren); comp.addPass(new RenderPass(scene, cam));
+const bloom = new UnrealBloomPass(new THREE.Vector2(W, H), .55, .5, .78); comp.addPass(bloom);
+comp.addPass(new ShaderPass({ uniforms:{ tDiffuse:{value:null} }, vertexShader:`varying vec2 v;void main(){v=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+ fragmentShader:`uniform sampler2D tDiffuse;varying vec2 v;void main(){vec4 c=texture2D(tDiffuse,v);float d=length((v-.5)*vec2(1.3,1.));c.rgb*=mix(1.,.55,smoothstep(.45,.95,d));c.rgb=pow(c.rgb,vec3(.97));gl_FragColor=c;}` }));
+comp.addPass(new OutputPass()); addEventListener('resize', fit); fit();
+// ---------- animation state machine ----------
+const S = { mode: 'idle', t: 0, key: 'atk1_rest', prev: 'atk1_rest', fade: 1, fadeDur: .08, x: -260, hitstop: 0, shake: 0, seq: null, dumHit: 0, dumV: 0, dumA: 0 };
+const setKey = (k, fd = .07) => { if (k === S.key) return; S.prev = S.key; S.key = k; S.fade = 0; S.fadeDur = fd; U.tA.value = TX[S.prev]; U.tB.value = TX[k]; };
+const WALK = ['walk1_idle', 'walk2_shift', 'walk3_mid', 'walk4_full', 'walk3_mid', 'walk2_shift'];
+// attack timeline: [start time, key, crossfade]
+const ATK = [[0, 'atk1_rest', .06], [.10, 'atk2_windup', .09], [.55, 'atk3_swing', .03], [.66, 'atk4_peak', .02], [1.05, 'atk5_recovery', .12], [1.55, 'atk1_rest', .15]], ATK_END = 1.8;
+const play = m => { S.mode = m; S.t = 0; S.seq = null; if (m !== 'walk') S.walkTo = null; };
+const cmd = window.cmd = {
+  idle: () => { play('idle'); },
+  walk: () => { play('walk'); S.walkTo = null; },
+  attack: () => { if (S.x > -400) S.x = -130; play('attack'); S.atkX0 = S.x; S.ev = {}; },
+  seq: () => { S.x = -820; play('walk'); S.walkTo = -130; S.seq = 'walkin'; },
+  flip: () => { U.uFlip.value *= -1; },
+};
+document.querySelectorAll('button').forEach(b => b.onclick = () => cmd[b.dataset.a]());
+const ease = t => t * t * (3 - 2 * t);
+function hitEnemy() { S.hitstop = .11; S.shake = 1; S.dumHit = 1; S.dumV = 420; burst(dum.position.x - 30, GROUND + 240, 80, 560, 1); flash.position.set(dum.position.x - 20, GROUND + 240, 7); flash.scale.setScalar(20); flash.material.opacity = 1; U.uFlash.value = .6; }
+function update(dt) {
+  let gdt = dt; if (S.hitstop > 0) { S.hitstop -= dt; gdt = dt * 0.02; }
+  S.t += gdt; U.uT.value += gdt; const t = S.t;
+  U.uSquash.value = 0; U.uLean.value = 0; U.uStretch.value = 0; let bob = 0;
+  if (S.mode === 'idle') { setKey('atk1_rest', .15); const b = Math.sin(t * 2.4); U.uSquash.value = b * .012; bob = 0; U.uSway.value = 1; }
+  else if (S.mode === 'walk') {
+    const spd = 210, cyc = .72; const ph = (t / cyc) % 1; const i = Math.floor(ph * WALK.length); setKey(WALK[i], .05);
+    bob = Math.abs(Math.sin(ph * Math.PI * 2)) * 7; U.uSquash.value = -Math.cos(ph * Math.PI * 4) * .015; U.uLean.value = .04; U.uSway.value = 1.8;
+    if (S.walkTo != null) { S.x = Math.min(S.walkTo, S.x + spd * gdt); if (S.x >= S.walkTo) { if (S.seq === 'walkin') { play('idle'); S.seq = 'pause'; S.t = 0; } else play('idle'); } }
+  }
+  else if (S.mode === 'attack') {
+    let k = ATK[0]; for (const a of ATK) if (t >= a[0]) k = a; setKey(k[1], k[2]); U.uSway.value = 1.4;
+    // anticipation: squash + lean back during wind-up hold
+    if (t > .1 && t < .55) { const a = ease(Math.min(1, (t - .1) / .25)); U.uSquash.value = a * .06; U.uLean.value = -a * .12; S.x = S.atkX0 - a * 14; }
+    // swing: smear stretch + lunge
+    if (t >= .55 && t < .7) { const a = (t - .55) / .15; U.uStretch.value = Math.sin(a * Math.PI) * .10; U.uSquash.value = -.03; U.uLean.value = .18; S.x = S.atkX0 - 14 + ease(Math.min(1, a * 1.4)) * 130; }
+    if (t >= .55 && !S.ev.s1) { S.ev.s1 = 1; slash(S.x + 190, GROUND + 260, 240, -1.0, 1.9, 85); }
+    if (t >= .64 && !S.ev.s2) { S.ev.s2 = 1; slash(S.x + 180, GROUND + 230, 200, -1.6, 1.2, 55); }
+    if (t >= .66 && !S.ev.hit) { S.ev.hit = 1; hitEnemy(); }
+    if (t >= .7 && t < 1.05) { U.uLean.value = .12; U.uSquash.value = .02; }
+    if (t >= 1.05) { const a = ease(Math.min(1, (t - 1.05) / .6)); S.x = S.atkX0 + 116 - a * 116; U.uLean.value = .12 * (1 - a); }
+    if (t >= ATK_END) { play('idle'); if (S.seq === 'attack') S.seq = null; }
+  }
+  if (S.seq === 'pause' && S.mode === 'idle' && t > .6) { S.seq = 'attack'; cmd.attack(); S.seq = 'attack'; }
+  // crossfade
+  S.fade = Math.min(1, S.fade + dt / S.fadeDur); U.uMix.value = S.fade;
+  if (S.fade >= 1) U.tA.value = U.tB.value;
+  // breathing bob for idle on top
+  if (S.mode === 'idle') bob = Math.sin(t * 2.4) * 2;
+  lir.position.set(S.x, GROUND + bob, 0); lSh.scale.x = 1 - bob * .01;
+  U.uFlash.value = Math.max(0, U.uFlash.value - dt * 3);
+  // dummy reaction: spring tilt + knockback
+  S.dumA += S.dumV * gdt * .004; S.dumV += (-S.dumA * 900 - S.dumV * 9) * gdt; dMesh.rotation.z = -S.dumA * .9; dMesh.position.x = S.dumA * 40;
+  S.dumHit = Math.max(0, S.dumHit - dt * 4); DU.uFlash.value = S.dumHit * .8;
+  // fx
+  for (let i = trails.length - 1; i >= 0; i--) { const tr = trails[i]; tr.t += gdt; tr.m.material.uniforms.uP.value = Math.min(1, tr.t / .06); tr.m.material.uniforms.uA.value = Math.max(0, 1 - Math.max(0, tr.t - .08) / .3); if (tr.t > .45) { scene.remove(tr.m); trails.splice(i, 1); } }
+  for (let i = 0; i < NS; i++) if (sp.life[i] > 0) { sp.life[i] -= gdt * 1.6; sp.vel[i*3+1] -= 900 * gdt; sp.vel[i*3] *= .98; sp.pos[i*3] += sp.vel[i*3] * gdt; sp.pos[i*3+1] += sp.vel[i*3+1] * gdt; }
+  spGeo.attributes.position.needsUpdate = spGeo.attributes.life.needsUpdate = true;
+  flash.material.opacity = Math.max(0, flash.material.opacity - dt * 5); flash.scale.multiplyScalar(1 + dt * 9);
+  // screen shake
+  S.shake = Math.max(0, S.shake - dt * 3.2); const sk = S.shake * S.shake * 14; cam.position.x = (Math.random() - .5) * sk; cam.position.y = (Math.random() - .5) * sk;
+  comp.render();
+}
+window.step = n => { for (let i = 0; i < n; i++) update(1 / 30); };
+if (!SHOT) { let last = performance.now(); const loop = now => { update(Math.min(.05, (now - last) / 1000)); last = now; requestAnimationFrame(loop); }; requestAnimationFrame(loop); setTimeout(() => cmd.seq(), 300); }
+else update(0);
+window.__ready = true;
+</script></body></html>
