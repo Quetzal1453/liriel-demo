@@ -1,6 +1,6 @@
 {
  "frames": {
-  "dryad_walk_right_000": {
+  "dryad_walk_right_000.png": {
    "frame": {
     "x": 0,
     "y": 0,
@@ -25,7 +25,7 @@
    },
    "duration": 42
   },
-  "dryad_walk_right_001": {
+  "dryad_walk_right_001.png": {
    "frame": {
     "x": 1024,
     "y": 0,
@@ -50,7 +50,7 @@
    },
    "duration": 42
   },
-  "dryad_walk_right_002": {
+  "dryad_walk_right_002.png": {
    "frame": {
     "x": 2048,
     "y": 0,
@@ -75,7 +75,7 @@
    },
    "duration": 42
   },
-  "dryad_walk_right_003": {
+  "dryad_walk_right_003.png": {
    "frame": {
     "x": 3072,
     "y": 0,
@@ -100,7 +100,7 @@
    },
    "duration": 42
   },
-  "dryad_walk_right_004": {
+  "dryad_walk_right_004.png": {
    "frame": {
     "x": 0,
     "y": 1024,
@@ -125,7 +125,7 @@
    },
    "duration": 42
   },
-  "dryad_walk_right_005": {
+  "dryad_walk_right_005.png": {
    "frame": {
     "x": 1024,
     "y": 1024,
@@ -150,7 +150,7 @@
    },
    "duration": 42
   },
-  "dryad_walk_right_006": {
+  "dryad_walk_right_006.png": {
    "frame": {
     "x": 2048,
     "y": 1024,
@@ -175,7 +175,7 @@
    },
    "duration": 42
   },
-  "dryad_walk_right_007": {
+  "dryad_walk_right_007.png": {
    "frame": {
     "x": 3072,
     "y": 1024,
@@ -200,7 +200,7 @@
    },
    "duration": 42
   },
-  "dryad_walk_right_008": {
+  "dryad_walk_right_008.png": {
    "frame": {
     "x": 0,
     "y": 2048,
@@ -225,7 +225,7 @@
    },
    "duration": 42
   },
-  "dryad_walk_right_009": {
+  "dryad_walk_right_009.png": {
    "frame": {
     "x": 1024,
     "y": 2048,
@@ -250,7 +250,7 @@
    },
    "duration": 42
   },
-  "dryad_walk_right_010": {
+  "dryad_walk_right_010.png": {
    "frame": {
     "x": 2048,
     "y": 2048,
@@ -275,7 +275,7 @@
    },
    "duration": 42
   },
-  "dryad_walk_right_011": {
+  "dryad_walk_right_011.png": {
    "frame": {
     "x": 3072,
     "y": 2048,
@@ -300,7 +300,7 @@
    },
    "duration": 42
   },
-  "dryad_walk_right_012": {
+  "dryad_walk_right_012.png": {
    "frame": {
     "x": 0,
     "y": 3072,
@@ -325,7 +325,7 @@
    },
    "duration": 42
   },
-  "dryad_walk_right_013": {
+  "dryad_walk_right_013.png": {
    "frame": {
     "x": 1024,
     "y": 3072,
@@ -350,7 +350,7 @@
    },
    "duration": 42
   },
-  "dryad_walk_right_014": {
+  "dryad_walk_right_014.png": {
    "frame": {
     "x": 2048,
     "y": 3072,
@@ -375,7 +375,7 @@
    },
    "duration": 42
   },
-  "dryad_walk_right_015": {
+  "dryad_walk_right_015.png": {
    "frame": {
     "x": 3072,
     "y": 3072,
@@ -401,33 +401,14 @@
    "duration": 42
   }
  },
- "animations": {
-  "walk_right": [
-   "dryad_walk_right_000",
-   "dryad_walk_right_001",
-   "dryad_walk_right_002",
-   "dryad_walk_right_003",
-   "dryad_walk_right_004",
-   "dryad_walk_right_005",
-   "dryad_walk_right_006",
-   "dryad_walk_right_007",
-   "dryad_walk_right_008",
-   "dryad_walk_right_009",
-   "dryad_walk_right_010",
-   "dryad_walk_right_011",
-   "dryad_walk_right_012",
-   "dryad_walk_right_013",
-   "dryad_walk_right_014",
-   "dryad_walk_right_015"
-  ]
- },
  "meta": {
+  "app": "custom",
   "image": "dryad_walk_right_atlas.png",
+  "format": "RGBA8888",
   "size": {
    "w": 4096,
    "h": 4096
   },
-  "format": "RGBA8888",
   "scale": "1"
  }
 }
