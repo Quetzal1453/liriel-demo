@@ -1,0 +1,182 @@
+{
+ "animation": "walk_right",
+ "files": [
+  "frames/dryad_walk_right_000.png",
+  "frames/dryad_walk_right_001.png",
+  "frames/dryad_walk_right_002.png",
+  "frames/dryad_walk_right_003.png",
+  "frames/dryad_walk_right_004.png",
+  "frames/dryad_walk_right_005.png",
+  "frames/dryad_walk_right_006.png",
+  "frames/dryad_walk_right_007.png",
+  "frames/dryad_walk_right_008.png",
+  "frames/dryad_walk_right_009.png",
+  "frames/dryad_walk_right_010.png",
+  "frames/dryad_walk_right_011.png",
+  "frames/dryad_walk_right_012.png",
+  "frames/dryad_walk_right_013.png",
+  "frames/dryad_walk_right_014.png",
+  "frames/dryad_walk_right_015.png"
+ ],
+ "order": [
+  0,
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9,
+  10,
+  11,
+  12,
+  13,
+  14,
+  15
+ ],
+ "durations_ms": [
+  42,
+  42,
+  42,
+  42,
+  42,
+  42,
+  42,
+  42,
+  42,
+  42,
+  42,
+  42,
+  42,
+  42,
+  42,
+  42
+ ],
+ "cycle_ms": 672,
+ "loop": true,
+ "canvas": [
+  1024,
+  1024
+ ],
+ "pivot": {
+  "x": 512,
+  "y": 980,
+  "note": "root = torso centre x, foot baseline y"
+ },
+ "frames": [
+  {
+   "index": 0,
+   "file": "frames/dryad_walk_right_000.png",
+   "duration_ms": 42,
+   "key": "L contact",
+   "source": "sheet s0 slot 0"
+  },
+  {
+   "index": 1,
+   "file": "frames/dryad_walk_right_001.png",
+   "duration_ms": 42,
+   "key": "in-between",
+   "source": "sheet s0 slot 1"
+  },
+  {
+   "index": 2,
+   "file": "frames/dryad_walk_right_002.png",
+   "duration_ms": 42,
+   "key": "L settle",
+   "source": "sheet s0 slot 2"
+  },
+  {
+   "index": 3,
+   "file": "frames/dryad_walk_right_003.png",
+   "duration_ms": 42,
+   "key": "in-between",
+   "source": "single generation (pose-guide sg03)"
+  },
+  {
+   "index": 4,
+   "file": "frames/dryad_walk_right_004.png",
+   "duration_ms": 42,
+   "key": "R passing",
+   "source": "sheet s1 slot 0"
+  },
+  {
+   "index": 5,
+   "file": "frames/dryad_walk_right_005.png",
+   "duration_ms": 42,
+   "key": "in-between",
+   "source": "single generation (pose-guide sg05)"
+  },
+  {
+   "index": 6,
+   "file": "frames/dryad_walk_right_006.png",
+   "duration_ms": 42,
+   "key": "L push-off",
+   "source": "sheet s1 slot 2"
+  },
+  {
+   "index": 7,
+   "file": "frames/dryad_walk_right_007.png",
+   "duration_ms": 42,
+   "key": "in-between",
+   "source": "sheet s1 slot 3"
+  },
+  {
+   "index": 8,
+   "file": "frames/dryad_walk_right_008.png",
+   "duration_ms": 42,
+   "key": "R contact",
+   "source": "single generation (pose-guide sg08)"
+  },
+  {
+   "index": 9,
+   "file": "frames/dryad_walk_right_009.png",
+   "duration_ms": 42,
+   "key": "in-between",
+   "source": "single generation (pose-guide sg09)"
+  },
+  {
+   "index": 10,
+   "file": "frames/dryad_walk_right_010.png",
+   "duration_ms": 42,
+   "key": "R settle",
+   "source": "sheet s2 slot 2"
+  },
+  {
+   "index": 11,
+   "file": "frames/dryad_walk_right_011.png",
+   "duration_ms": 42,
+   "key": "in-between",
+   "source": "sheet s2 slot 3"
+  },
+  {
+   "index": 12,
+   "file": "frames/dryad_walk_right_012.png",
+   "duration_ms": 42,
+   "key": "L passing",
+   "source": "single generation (pose-guide sg12)"
+  },
+  {
+   "index": 13,
+   "file": "frames/dryad_walk_right_013.png",
+   "duration_ms": 42,
+   "key": "in-between",
+   "source": "sheet s3 slot 1"
+  },
+  {
+   "index": 14,
+   "file": "frames/dryad_walk_right_014.png",
+   "duration_ms": 42,
+   "key": "R push-off",
+   "source": "sheet s3 slot 2"
+  },
+  {
+   "index": 15,
+   "file": "frames/dryad_walk_right_015.png",
+   "duration_ms": 42,
+   "key": "in-between",
+   "source": "sheet s3 slot 3"
+  }
+ ]
+}
