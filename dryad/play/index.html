@@ -1,0 +1,104 @@
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Forest Dryad Ranger – Walk Demo</title>
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#0d1a12;touch-action:none;-webkit-user-select:none;user-select:none;overscroll-behavior:none}
+canvas{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;display:block}
+#ui{position:fixed;top:8px;right:8px;display:flex;gap:6px;z-index:2}
+button{font:14px sans-serif;background:#0008;color:#fff;border:1px solid #fff6;border-radius:8px;padding:6px 10px}
+#fps{position:fixed;top:8px;left:8px;font:13px monospace;color:#cfe;background:#0008;padding:4px 6px;border-radius:6px;display:none;z-index:2}
+#help{position:fixed;bottom:8px;width:100%;text-align:center;font:12px sans-serif;color:#fff9;pointer-events:none}
+</style></head><body>
+<canvas id="c"></canvas><div id="fps"></div>
+<div id="ui"><button id="fb">FPS</button></div>
+<div id="help">Arrows / WASD, or drag the joystick (bottom-left)</div>
+<script>
+(()=>{
+const cv=document.getElementById('c'),cx=cv.getContext('2d');
+const FR=13,COLS=5,FS=512,PIV={x:256,y:490}; // pivot (512,980) in 1024 = (256,490) in 512 atlas
+const BODY=438;          // body height in atlas px (pixel rows ~56..494)
+const STRIDE=485;        // one cycle (2 steps) travel in atlas px, measured from planted-foot travel (~243/step)
+const CYCLE=0.754;       // native loop seconds
+const img=new Image();img.src='dryad_walk_right_atlas.png';
+let W,H,dpr;
+function resize(){dpr=Math.min(window.devicePixelRatio||1,3);W=innerWidth;H=innerHeight;cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);}
+addEventListener('resize',resize);resize();
+// state
+const p={x:0.5,d:0.6,face:1,phase:0,moving:false};
+const keys={};addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=1;if(e.key.startsWith('Arrow'))e.preventDefault()});
+addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
+// joystick
+const js={id:null,ox:0,oy:0,dx:0,dy:0};
+cv.addEventListener('pointerdown',e=>{if(js.id===null){js.id=e.pointerId;js.ox=e.clientX;js.oy=e.clientY;js.dx=js.dy=0;}});
+addEventListener('pointermove',e=>{if(e.pointerId===js.id){js.dx=e.clientX-js.ox;js.dy=e.clientY-js.oy;}});
+const up=e=>{if(e.pointerId===js.id){js.id=null;js.dx=js.dy=0;}};
+addEventListener('pointerup',up);addEventListener('pointercancel',up);
+document.addEventListener('gesturestart',e=>e.preventDefault());
+let showFps=false;const fpsEl=document.getElementById('fps');
+document.getElementById('fb').onclick=()=>{showFps=!showFps;fpsEl.style.display=showFps?'block':'none'};
+addEventListener('keydown',e=>{if(e.key==='f'){document.getElementById('fb').click()}});
+// world
+let camX=0;const R=n=>{let s=Math.sin(n*127.1)*43758.5;return s-Math.floor(s)};
+function scaleAt(d){return 0.75+0.5*d} // depth scale
+function charH(d){return Math.min(H*0.42,W*0.6)*scaleAt(d)}
+function horizon(){return H*0.45}
+function groundY(d){return horizon()+ (H-horizon())*(0.15+0.75*d)}
+const DT=1/60;
+function step(){
+  let ix=0,iy=0;
+  if(keys.arrowleft||keys.a)ix-=1;if(keys.arrowright||keys.d)ix+=1;
+  if(keys.arrowup||keys.w)iy-=1;if(keys.arrowdown||keys.s)iy+=1;
+  if(js.id!==null){const r=60,m=Math.hypot(js.dx,js.dy);if(m>8){const k=Math.min(m,r)/r/m;ix=js.dx*k;iy=js.dy*k;}}
+  const mag=Math.min(1,Math.hypot(ix,iy));
+  const h=charH(p.d), pxPerAtlas=h/BODY;
+  const walkSpeed=STRIDE*pxPerAtlas/CYCLE; // screen px/s at native rate
+  const vx=ix*walkSpeed, vy=iy*0.35;      // depth units/s
+  p.moving=mag>0.05;
+  if(p.moving){
+    if(Math.abs(ix)>0.05)p.face=ix>0?1:-1;
+    camX+=vx*DT/ (Math.min(H*0.42,W*0.6)); // world in base-height units
+    p.d=Math.max(0,Math.min(1,p.d+vy*DT));
+    // animation tied to distance; pure vertical uses nominal speed
+    const sp=Math.max(Math.abs(vx)/walkSpeed,Math.abs(iy)*0.6);
+    p.phase=(p.phase+sp*DT/CYCLE)%1;
+  } else p.phase=0;
+}
+function drawBG(){
+  const c=cx,hz=horizon();
+  let g=c.createLinearGradient(0,0,0,hz);g.addColorStop(0,'#9fd3c7');g.addColorStop(1,'#e8f0c8');c.fillStyle=g;c.fillRect(0,0,W,hz+2);
+  const base=Math.min(H*0.42,W*0.6);
+  const layers=[[0.15,'#6f9a83',0.55,90],[0.35,'#41725a',0.75,70],[0.6,'#24503a',1,55]];
+  for(const[par,col,hs,sp] of layers){
+    const off=camX*base*par; c.fillStyle=col;
+    const s=sp*hs*(H/700); const i0=Math.floor((off-s)/s);
+    for(let i=i0;i<i0+W/s+3;i++){const x=i*s-off,th=(0.5+R(i+par*99)*0.5)*hz*hs*0.9;
+      c.beginPath();c.moveTo(x-s*0.45,hz);c.lineTo(x,hz-th);c.lineTo(x+s*0.45,hz);c.fill();
+      c.fillRect(x-s*0.05,hz-4,s*0.1,8);}
+  }
+  g=c.createLinearGradient(0,hz,0,H);g.addColorStop(0,'#3d6b34');g.addColorStop(1,'#6e9a45');c.fillStyle=g;c.fillRect(0,hz,W,H-hz);
+  // ground tufts at depth rows, scrolling with depth parallax
+  for(let r=0;r<8;r++){const d=r/7,y=groundY(d),sc=scaleAt(d),off=camX*base*sc,s=110*sc*(H/700);
+    c.fillStyle=r%2?'#2f5a2a':'#4f7f38';const i0=Math.floor(off/s)-1;
+    for(let i=i0;i<i0+W/s+3;i++){const x=i*s-off+R(i*7+r)*s*0.6;c.fillRect(x,y,6*sc,-(8+R(i+r*3)*10)*sc);c.fillRect(x+8*sc,y,5*sc,-(5+R(i*3+r)*8)*sc);}}
+}
+function draw(){
+  cx.setTransform(dpr,0,0,dpr,0,0);drawBG();
+  const h=charH(p.d),k=h/BODY,x=W*0.5,y=groundY(p.d);
+  cx.fillStyle='#0004';cx.beginPath();cx.ellipse(x,y,h*0.17,h*0.035,0,0,7);cx.fill();
+  if(img.complete&&img.naturalWidth){
+    const f=p.moving?Math.floor(p.phase*FR)%FR:0, sx=(f%COLS)*FS, sy=Math.floor(f/COLS)*FS;
+    cx.save();cx.translate(x,y);cx.scale(p.face*k,k);cx.imageSmoothingEnabled=true;cx.imageSmoothingQuality='high';
+    cx.drawImage(img,sx,sy,FS,FS,-PIV.x,-PIV.y,FS,FS);cx.restore();
+  }
+  if(js.id!==null){cx.strokeStyle='#fff8';cx.lineWidth=3;cx.beginPath();cx.arc(js.ox,js.oy,60,0,7);cx.stroke();
+    const m=Math.hypot(js.dx,js.dy),q=m>60?60/m:1;cx.fillStyle='#fff6';cx.beginPath();cx.arc(js.ox+js.dx*q,js.oy+js.dy*q,24,0,7);cx.fill();}
+  else{cx.strokeStyle='#fff3';cx.lineWidth=2;cx.beginPath();cx.arc(80,H-90,50,0,7);cx.stroke();}
+}
+let last=performance.now(),acc=0,fc=0,ft=0;
+function loop(t){let el=(t-last)/1000;last=t;if(el>0.25)el=0.25;acc+=el;
+  while(acc>=DT){step();acc-=DT;}draw();
+  fc++;ft+=el;if(ft>=0.5){fpsEl.textContent=(fc/ft).toFixed(0)+' FPS  60Hz sim';fc=0;ft=0;}
+  requestAnimationFrame(loop);}
+requestAnimationFrame(loop);
+})();
+</script></body></html>
