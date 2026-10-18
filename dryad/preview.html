@@ -1,13 +1,7 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dryad walk (right)</title>
-<style>body{margin:0;background:#1d2a20;color:#e8f0e0;font-family:system-ui;text-align:center}canvas{max-width:100%;background:linear-gradient(#dfe6dc,#c6cfc2);border-radius:8px}button{padding:8px 14px;margin:4px;font-size:15px}</style></head><body>
-<h2>Forest Dryad Ranger — walk right (16 frames, 42 ms)</h2><canvas id="c" width="512" height="512"></canvas><p id="i"></p>
-<button id="p">Pause</button><button id="s">Step</button><label><input type="range" id="sp" min="0.1" max="2" step="0.1" value="1"> speed</label>
-<p><a style="color:#b8e0a0" href="contact.png">contact sheet</a> · <a style="color:#b8e0a0" href="walk_preview.gif">GIF</a> · <a style="color:#b8e0a0" href="manifest.json">manifest</a> · <a style="color:#b8e0a0" href="review.md">review</a></p>
-<script>
-const c=document.getElementById('c'),x=c.getContext('2d');let M,imgs=[],fi=0,t=0,run=true,last=performance.now();
-fetch('manifest.json').then(r=>r.json()).then(async m=>{M=m;imgs=await Promise.all(m.files.map(f=>new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.src=f;})));requestAnimationFrame(loop);});
-function draw(){x.clearRect(0,0,512,512);x.fillStyle='rgba(0,0,0,.25)';x.beginPath();x.ellipse(256,490,90,10,0,0,7);x.fill();x.drawImage(imgs[fi],0,0,512,512);x.strokeStyle='rgba(200,0,0,.4)';x.beginPath();x.moveTo(0,490);x.lineTo(512,490);x.stroke();
-document.getElementById('i').textContent=`frame ${String(fi).padStart(3,'0')} — ${M.frames[fi].key}`;}
-function loop(n){const dt=(n-last)*document.getElementById('sp').value;last=n;if(run){t+=dt;while(t>=M.durations_ms[fi]){t-=M.durations_ms[fi];fi=(fi+1)%16;}}draw();requestAnimationFrame(loop);}
-document.getElementById('p').onclick=e=>{run=!run;e.target.textContent=run?'Pause':'Play'};document.getElementById('s').onclick=()=>{run=false;fi=(fi+1)%16;document.getElementById('p').textContent='Play'};
-</script></body></html>
+<!doctype html><meta name=viewport content="width=device-width,initial-scale=1"><title>Dryad walk v4</title>
+<style>body{margin:0;background:#1d2128;color:#ddd;font:14px sans-serif;text-align:center}.w{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;padding:10px}.w>div{flex:1 1 300px;max-width:512px}canvas,img{width:100%;background:#3c5a3c;border-radius:8px}</style>
+<h3>Forest Dryad Ranger — walk right (v4, AutoSprite, 13f / 0.75s)</h3>
+<div class=w><div><canvas id=c width=512 height=512></canvas><p>Frames <span id=f></span> · <label><input type=range id=s min=30 max=150 value=58> ms</label></p></div><div><img src="contact.png"><p>Contact sheet</p></div></div>
+<p><a href="review.md" style=color:#9cf>review</a> · <a href="manifest.json" style=color:#9cf>manifest</a></p>
+<script>const N=13,im=[];let i=0,t=0;for(let k=0;k<N;k++){const m=new Image();m.src=`frames/dryad_walk_right_${String(k).padStart(3,'0')}.png`;im.push(m)}
+const x=c.getContext('2d');function L(ts){if(ts-t>=+s.value){t=ts;i=(i+1)%N;x.clearRect(0,0,512,512);x.drawImage(im[i],0,0,512,512);f.textContent=i}requestAnimationFrame(L)}requestAnimationFrame(L)</script>

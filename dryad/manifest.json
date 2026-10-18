@@ -1,179 +1,32 @@
 {
- "name": "dryad_walk_right",
+ "character": "forest_dryad_ranger",
  "action": "walk",
  "direction": "right",
- "method": "2D bone rig (LBS mesh deformation, Three.js) from a single generated side master",
- "canvas": {
-  "w": 1024,
-  "h": 1024
- },
- "pivot": {
-  "x": 512,
-  "y": 980
- },
- "loop": true,
- "fps": 23.81,
- "total_ms": 672,
- "files": [
-  "frames/dryad_walk_right_000.png",
-  "frames/dryad_walk_right_001.png",
-  "frames/dryad_walk_right_002.png",
-  "frames/dryad_walk_right_003.png",
-  "frames/dryad_walk_right_004.png",
-  "frames/dryad_walk_right_005.png",
-  "frames/dryad_walk_right_006.png",
-  "frames/dryad_walk_right_007.png",
-  "frames/dryad_walk_right_008.png",
-  "frames/dryad_walk_right_009.png",
-  "frames/dryad_walk_right_010.png",
-  "frames/dryad_walk_right_011.png",
-  "frames/dryad_walk_right_012.png",
-  "frames/dryad_walk_right_013.png",
-  "frames/dryad_walk_right_014.png",
-  "frames/dryad_walk_right_015.png"
+ "frame_count": 13,
+ "frame_ms": 58,
+ "loop_s": 0.754,
+ "canvas": [
+  1024,
+  1024
  ],
- "order": [
-  0,
-  1,
-  2,
-  3,
-  4,
-  5,
-  6,
-  7,
-  8,
-  9,
-  10,
-  11,
-  12,
-  13,
-  14,
-  15
+ "pivot": [
+  512,
+  980
  ],
- "durations_ms": [
-  42,
-  42,
-  42,
-  42,
-  42,
-  42,
-  42,
-  42,
-  42,
-  42,
-  42,
-  42,
-  42,
-  42,
-  42,
-  42
- ],
- "keys": {
-  "0": "L contact",
-  "2": "L settle",
-  "4": "R passing",
-  "6": "L push-off",
-  "8": "R contact",
-  "10": "R settle",
-  "12": "L passing",
-  "14": "R push-off"
- },
+ "source": "AutoSprite free tier, ~230px tall frames, upscaled x3.83 LANCZOS",
  "frames": [
-  {
-   "file": "frames/dryad_walk_right_000.png",
-   "index": 0,
-   "duration_ms": 42,
-   "key": "L contact"
-  },
-  {
-   "file": "frames/dryad_walk_right_001.png",
-   "index": 1,
-   "duration_ms": 42,
-   "key": null
-  },
-  {
-   "file": "frames/dryad_walk_right_002.png",
-   "index": 2,
-   "duration_ms": 42,
-   "key": "L settle"
-  },
-  {
-   "file": "frames/dryad_walk_right_003.png",
-   "index": 3,
-   "duration_ms": 42,
-   "key": null
-  },
-  {
-   "file": "frames/dryad_walk_right_004.png",
-   "index": 4,
-   "duration_ms": 42,
-   "key": "R passing"
-  },
-  {
-   "file": "frames/dryad_walk_right_005.png",
-   "index": 5,
-   "duration_ms": 42,
-   "key": null
-  },
-  {
-   "file": "frames/dryad_walk_right_006.png",
-   "index": 6,
-   "duration_ms": 42,
-   "key": "L push-off"
-  },
-  {
-   "file": "frames/dryad_walk_right_007.png",
-   "index": 7,
-   "duration_ms": 42,
-   "key": null
-  },
-  {
-   "file": "frames/dryad_walk_right_008.png",
-   "index": 8,
-   "duration_ms": 42,
-   "key": "R contact"
-  },
-  {
-   "file": "frames/dryad_walk_right_009.png",
-   "index": 9,
-   "duration_ms": 42,
-   "key": null
-  },
-  {
-   "file": "frames/dryad_walk_right_010.png",
-   "index": 10,
-   "duration_ms": 42,
-   "key": "R settle"
-  },
-  {
-   "file": "frames/dryad_walk_right_011.png",
-   "index": 11,
-   "duration_ms": 42,
-   "key": null
-  },
-  {
-   "file": "frames/dryad_walk_right_012.png",
-   "index": 12,
-   "duration_ms": 42,
-   "key": "L passing"
-  },
-  {
-   "file": "frames/dryad_walk_right_013.png",
-   "index": 13,
-   "duration_ms": 42,
-   "key": null
-  },
-  {
-   "file": "frames/dryad_walk_right_014.png",
-   "index": 14,
-   "duration_ms": 42,
-   "key": "R push-off"
-  },
-  {
-   "file": "frames/dryad_walk_right_015.png",
-   "index": 15,
-   "duration_ms": 42,
-   "key": null
-  }
+  "dryad_walk_right_000.png",
+  "dryad_walk_right_001.png",
+  "dryad_walk_right_002.png",
+  "dryad_walk_right_003.png",
+  "dryad_walk_right_004.png",
+  "dryad_walk_right_005.png",
+  "dryad_walk_right_006.png",
+  "dryad_walk_right_007.png",
+  "dryad_walk_right_008.png",
+  "dryad_walk_right_009.png",
+  "dryad_walk_right_010.png",
+  "dryad_walk_right_011.png",
+  "dryad_walk_right_012.png"
  ]
 }
